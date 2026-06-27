@@ -1,0 +1,19 @@
+# Render Blueprint — one-click deploy of the Smriti Node server.
+# Secrets are set in the Render dashboard (sync:false = never committed to git).
+services:
+  - type: web
+    name: smriti
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      # Claude (primary). The server routes per task: Haiku for chat/next-action,
+      # Sonnet for journal analysis — so do NOT pin ANTHROPIC_MODEL here.
+      - key: ANTHROPIC_API_KEY
+        sync: false                 # Render prompts you to paste it; stays out of git
+      # AssemblyAI Voice Agent key — powers the voice companion (token is minted server-side).
+      - key: ASSEMBLYAI_API_KEY
+        sync: false

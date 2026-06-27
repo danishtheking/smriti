@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+  <title>Smriti</title>
+  <meta name="description" content="A calm daily companion for exam prep — journal, tasks, calendar, and a voice companion that tells you your next move." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            paper:'#FFFFFF', wash:'#FAFAFA', hair:'#F4F4F5',
+            line:'#E7E7EA', line2:'#DEDEE2',
+            ink:'#18181B', ink2:'#3F3F46', muted:'#71717A', faint:'#6B7280',
+            good:'#16A34A', mid:'#D97706', low:'#DC2626'
+          },
+          fontFamily: {
+            sans: ['Geist','-apple-system','Segoe UI','sans-serif'],
+            mono: ['"Geist Mono"','ui-monospace','monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    *{ -webkit-tap-highlight-color: transparent; }
+    html,body{ height:100%; }
+    body{
+      background:#E9E9EC; color:#18181B;
+      font-family:'Geist',-apple-system,'Segoe UI',sans-serif;
+      letter-spacing:-0.012em;
+      -webkit-font-smoothing:antialiased;
+    }
+    .tight{ letter-spacing:-0.02em; } .tighter{ letter-spacing:-0.032em; }
+    .num{ font-variant-numeric: tabular-nums; }
+    :focus-visible{ outline:2px solid #18181B; outline-offset:2px; border-radius:10px; }
+    button{ letter-spacing:inherit; }
+
+    .app{ max-width:440px; margin:0 auto; background:#FFFFFF; height:100dvh;
+          display:flex; flex-direction:column; box-shadow:0 0 0 1px #E7E7EA, 0 24px 60px -28px rgba(0,0,0,.25); }
+    main{ flex:1; min-height:0; }
+    .view{ height:100%; }
+    .scroll{ height:100%; overflow-y:auto; }
+    .scroll::-webkit-scrollbar{ width:0; } /* clean, app-like */
+
+    /* ===== Responsive: laptop / desktop / large displays =====
+       Everything below is md+ only — the <=767px mobile app stays byte-for-byte unchanged. */
+    @media(min-width:768px){
+      body{ background:#FFFFFF; }
+      .app{ max-width:none; margin:0; box-shadow:none;
+            display:grid;
+            grid-template-columns:240px minmax(0,1fr);
+            grid-template-rows:auto 1fr;
+            grid-template-areas:"side head" "side main"; }
+      .app > header{ grid-area:head; }
+      .app > main  { grid-area:main; min-height:0; }
+      .app > nav   { grid-area:side; }
+      .nav-btn svg{ width:19px; height:19px; }
+      nav.appnav .nav-btn.text-ink{ background:#F4F4F5; }
+    }
+    @media(min-width:1280px){ .app{ grid-template-columns:264px minmax(0,1fr); } }
+    @media(min-width:1536px){
+      body{ background:#FAFAFA; }
+      .app{ max-width:1440px; margin:0 auto; box-shadow:0 0 0 1px #E7E7EA; }
+    }
+
+    .nav-btn svg{ width:23px; height:23px; }
+    .card{ background:#FFFFFF; border:1px solid #E7E7EA; border-radius:18px; }
+    .pressable{ transition:transform .08s ease, background-color .12s ease, border-color .12s ease; }
+    .pressable:active{ transform:scale(.985); }
+    .fade{ animation:fade .28s ease-out; } @keyframes fade{ from{opacity:0; transform:translateY(5px);} to{opacity:1; transform:none;} }
+
+    /* voice mic pulse — solid, no gradient */
+    .mic-live{ animation:micp 1.4s ease-in-out infinite; }
+    @keyframes micp{ 0%,100%{ box-shadow:0 0 0 0 rgba(24,24,27,.18);} 50%{ box-shadow:0 0 0 14px rgba(24,24,27,0);} }
+    .typing span{ width:6px;height:6px;border-radius:9999px;background:#A1A1AA;display:inline-block;animation:blink 1.2s infinite; }
+    .typing span:nth-child(2){ animation-delay:.2s;} .typing span:nth-child(3){ animation-delay:.4s;}
+    @keyframes blink{ 0%,60%,100%{opacity:.25;} 30%{opacity:1;} }
+
+    /* Respect users who ask for less motion (vestibular comfort). */
+    @media (prefers-reduced-motion: reduce){
+      *{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important; }
+    }
+
+    input,textarea{ font:inherit; letter-spacing:inherit; }
+    textarea{ resize:none; }
+    .field{ background:#FFFFFF; border:1px solid #E7E7EA; border-radius:14px; }
+    .field:focus-within{ border-color:#18181B; }
+    .seg{ background:#F4F4F5; border-radius:9999px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+
+    <!-- ===== HEADER ===== -->
+    <header class="flex-none px-5 pt-4 pb-3 border-b border-hair flex items-center justify-between">
+      <div>
+        <div id="hdrTitle" class="text-[19px] font-semibold tighter leading-none">Smriti</div>
+        <div id="hdrSub" class="text-[12px] text-muted mt-1 leading-none"></div>
+      </div>
+      <a href="tel:14416" id="hdrHelp" class="seg text-[12px] text-ink2 px-3 py-1.5 pressable" title="Tele-MANAS — India's free 24×7 mental-health helpline">Helpline</a>
+    </header>
+
+    <!-- ===== MAIN ===== -->
+    <main>
+
+      <!-- ---------- HOME ---------- -->
+      <section id="view-home" class="view scroll px-5 py-5 md:px-8 md:py-7"></section>
+
+      <!-- ---------- JOURNAL ---------- -->
+      <section id="view-journal" class="view scroll px-5 py-5 md:px-8 md:py-7 hidden">
+        <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8 xl:grid-cols-[minmax(0,1fr)_400px] lg:max-w-[1060px] lg:mx-auto lg:items-start">
+          <div class="lg:max-w-[640px]">
+            <h2 class="text-[22px] font-semibold tighter">Check in</h2>
+            <p id="jrnDate" class="text-[13px] text-muted mt-0.5"></p>
+            <div class="field mt-4 p-3">
+              <textarea id="journalText" rows="5" class="w-full bg-transparent outline-none text-[15px] placeholder:text-faint lg:min-h-[170px]" placeholder="What's on your mind today? How's prep going, how are you feeling…"></textarea>
+            </div>
+            <button id="journalSave" class="mt-3 w-full bg-ink text-white rounded-2xl py-3.5 font-medium text-[15px] pressable flex items-center justify-center gap-2">
+              <span id="jrnSpin" class="hidden w-4 h-4 rounded-full border-2 border-white/30 border-t-white" style="animation:spin .8s linear infinite"></span>
+              <span id="jrnSaveLabel">Save &amp; reflect</span>
+            </button>
+            <div id="journalInsight" aria-live="polite" class="mt-4"></div>
+          </div>
+          <div class="mt-7 lg:mt-0 lg:sticky lg:top-0 lg:self-start lg:border-l lg:border-hair lg:pl-8">
+            <div class="text-[12px] font-medium text-muted uppercase tracking-wide mb-2">Past check-ins</div>
+            <div id="journalList" class="space-y-2.5"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- TASKS ---------- -->
+      <section id="view-tasks" class="view scroll px-5 py-5 md:px-8 md:py-7 hidden">
+        <div class="md:max-w-[720px] md:mx-auto">
+          <h2 class="text-[22px] font-semibold tighter">Tasks</h2>
+          <div class="flex items-center gap-2 mt-4">
+            <div class="field flex-1 flex items-center px-3 py-2.5">
+              <input id="taskInput" class="w-full bg-transparent outline-none text-[15px] placeholder:text-faint" placeholder="Add a task…" />
+            </div>
+            <input id="taskDue" type="date" class="field px-2.5 py-2.5 text-[13px] text-muted num outline-none" />
+            <button id="taskAdd" class="bg-ink text-white rounded-2xl w-11 h-11 grid place-items-center pressable shrink-0" aria-label="Add task">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+          </div>
+          <div id="taskOpen" class="mt-5 space-y-2"></div>
+          <div id="taskDoneWrap" class="mt-6 hidden">
+            <div class="text-[12px] font-medium text-muted uppercase tracking-wide mb-2">Done</div>
+            <div id="taskDone" class="space-y-2"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- CALENDAR ---------- -->
+      <section id="view-calendar" class="view scroll px-5 py-5 md:px-8 md:py-7 hidden">
+        <div class="lg:grid lg:grid-cols-[minmax(0,560px)_minmax(0,1fr)] lg:gap-10 lg:max-w-[1080px] lg:mx-auto lg:items-start">
+          <div class="cal-month">
+            <div class="flex items-center justify-between">
+              <h2 class="text-[22px] font-semibold tighter">Calendar</h2>
+              <div class="flex items-center gap-1">
+                <button id="calPrev" class="w-9 h-9 grid place-items-center rounded-xl pressable text-muted" aria-label="Previous month">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <div id="calLabel" class="text-[14px] font-medium w-[120px] text-center"></div>
+                <button id="calNext" class="w-9 h-9 grid place-items-center rounded-xl pressable text-muted" aria-label="Next month">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="grid grid-cols-7 mt-4 mb-1 text-[11px] text-faint font-medium text-center">
+              <div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div><div>S</div>
+            </div>
+            <div id="calGrid" class="grid grid-cols-7 gap-1"></div>
+          </div>
+          <div id="calDay" class="mt-5 lg:mt-0 lg:sticky lg:top-0 lg:self-start"></div>
+        </div>
+      </section>
+
+      <!-- ---------- COMPANION ---------- -->
+      <section id="view-chat" class="view hidden flex flex-col" style="height:100%">
+        <div class="flex-none px-5 pt-4 pb-4 border-b border-hair">
+          <div class="flex items-center gap-3.5 lg:max-w-[760px] lg:mx-auto xl:max-w-[820px]">
+            <button id="micBtn" class="w-12 h-12 rounded-full bg-ink text-white grid place-items-center pressable shrink-0" aria-label="Start voice chat">
+              <svg id="micIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10a7 7 0 0 1-14 0"/><path d="M12 17v4"/></svg>
+            </button>
+            <div class="min-w-0">
+              <div class="text-[15px] font-semibold tight leading-tight">Talk to Smriti</div>
+              <div id="micStatus" role="status" class="text-[12.5px] text-muted leading-tight mt-0.5">Tap the mic and just talk — or type below</div>
+            </div>
+            <button id="saveSession" class="ml-auto seg text-[12.5px] font-medium text-ink px-3.5 py-2 pressable shrink-0">Wrap up</button>
+          </div>
+        </div>
+        <div id="thread" aria-live="polite" class="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-3 scroll lg:w-full lg:max-w-[760px] lg:mx-auto xl:max-w-[820px]"></div>
+        <div class="flex-none px-4 py-3 border-t border-hair">
+          <div class="flex items-center gap-2 lg:max-w-[760px] lg:mx-auto xl:max-w-[820px]">
+            <div class="field flex-1 flex items-center px-3.5 py-2.5">
+              <input id="chatInput" class="w-full bg-transparent outline-none text-[15px] placeholder:text-faint" placeholder="Type a message…" />
+            </div>
+            <button id="chatSend" class="bg-ink text-white rounded-2xl w-11 h-11 grid place-items-center pressable shrink-0" aria-label="Send">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- BREATHE (adaptive mindfulness) ---------- -->
+      <section id="view-breathe" class="view scroll px-5 py-6 md:px-8 md:py-7 hidden"></section>
+    </main>
+
+    <!-- ===== BOTTOM NAV (menu) ===== -->
+    <nav aria-label="Primary" class="appnav flex-none border-t border-line grid grid-cols-6 md:grid-cols-1 md:grid-rows-none md:content-start md:gap-0.5 md:border-t-0 md:border-r md:p-3 bg-paper">
+      <button class="nav-btn pressable py-2.5 flex flex-col items-center gap-1 text-faint md:flex-row md:justify-start md:gap-3 md:px-3 md:py-2.5 md:rounded-xl md:w-full" data-view="home" aria-label="Home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"/><path d="M5 9v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9"/><path d="M9 21v-6h6v6"/></svg>
+        <span class="text-[10.5px] font-medium md:text-[13.5px]">Home</span>
+      </button>
+      <button class="nav-btn pressable py-2.5 flex flex-col items-center gap-1 text-faint md:flex-row md:justify-start md:gap-3 md:px-3 md:py-2.5 md:rounded-xl md:w-full" data-view="journal" aria-label="Journal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+        <span class="text-[10.5px] font-medium md:text-[13.5px]">Journal</span>
+      </button>
+      <button class="nav-btn pressable py-2.5 flex flex-col items-center gap-1 text-faint md:flex-row md:justify-start md:gap-3 md:px-3 md:py-2.5 md:rounded-xl md:w-full" data-view="tasks" aria-label="Tasks">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span class="text-[10.5px] font-medium md:text-[13.5px]">Tasks</span>
+      </button>
+      <button class="nav-btn pressable py-2.5 flex flex-col items-center gap-1 text-faint md:flex-row md:justify-start md:gap-3 md:px-3 md:py-2.5 md:rounded-xl md:w-full" data-view="calendar" aria-label="Calendar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <span class="text-[10.5px] font-medium md:text-[13.5px]">Calendar</span>
+      </button>
+      <button class="nav-btn pressable py-2.5 flex flex-col items-center gap-1 text-faint md:flex-row md:justify-start md:gap-3 md:px-3 md:py-2.5 md:rounded-xl md:w-full" data-view="breathe" aria-label="Breathe">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/></svg>
+        <span class="text-[10.5px] font-medium md:text-[13.5px]">Breathe</span>
+      </button>
+      <button class="nav-btn pressable py-2.5 flex flex-col items-center gap-1 text-faint md:flex-row md:justify-start md:gap-3 md:px-3 md:py-2.5 md:rounded-xl md:w-full" data-view="chat" aria-label="Companion">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span class="text-[10.5px] font-medium md:text-[13.5px]">Companion</span>
+      </button>
+    </nav>
+  </div>
+
+  <script type="module">
+  /* =================================================================================
+     Smriti — mobile companion for exam-prep wellbeing.
+     One file, no build. Real local data (no seeds). AI via the Node backend (Claude).
+     ================================================================================= */
+  const $  = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const uid = () => Math.random().toString(36).slice(2,9);
+  const num = (m) => Number.isFinite(+m) ? +m : '—';   // safe numeric render (coerces model output)
+
+  /* ---------- storage (real data only) ---------- */
+  const load = (k,f) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? f; } catch { return f; } };
+  const save = (k,v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+  const DB = {
+    journal: load('smriti_journal', []),   // {id, ts, dateKey, text, analysis}
+    tasks:   load('smriti_tasks', []),      // {id, text, done, due}
+    events:  load('smriti_events', []),     // {id, date:'YYYY-MM-DD', title}
+    chat:    load('smriti_chat', []),       // {role, text}
+    move:    load('smriti_move', null)      // {action, reason, stamp}
+  };
+  const persist = (k) => save('smriti_'+k, DB[k]);
+
+  /* ---------- dates ---------- */
+  const pad = (n) => String(n).padStart(2,'0');
+  const keyOf = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  const todayKey = () => keyOf(new Date());
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const prettyKey = (k) => { const [y,m,dd]=k.split('-').map(Number); const d=new Date(y,m-1,dd); return `${DOW[d.getDay()]}, ${dd} ${MON[m-1]}`; };
+  const greeting = () => { const h=new Date().getHours(); return h<12?'Good morning':h<17?'Good afternoon':h<21?'Good evening':'Still up'; };
+  const moodColor = (m) => m==null?'#A1A1AA': m<=4?'#DC2626': m<=6?'#D97706':'#16A34A';
+
+  /* ---------- API ---------- */
+  async function api(path, body) {
+    const res = await fetch(path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  }
+
+  /* ========================= ROUTER ========================= */
+  let current = 'home';
+  function show(view) {
+    if (breatheRunning && view !== 'breathe') stopBreathe();   // don't keep breathing in the background
+    current = view;
+    $$('.view').forEach(v => v.classList.toggle('hidden', v.id !== 'view-'+view));
+    $$('.nav-btn').forEach(b => {
+      const on = b.dataset.view===view;
+      b.classList.toggle('text-ink', on); b.classList.toggle('text-faint', !on);
+      b.setAttribute('aria-current', on ? 'page' : 'false');
+    });
+    const titles = { home:'Smriti', journal:'Journal', tasks:'Tasks', calendar:'Calendar', chat:'Companion', breathe:'Breathe' };
+    $('#hdrTitle').textContent = titles[view] || 'Smriti';
+    if (view==='home')      { $('#hdrSub').textContent = new Date().toLocaleDateString(undefined,{weekday:'long', day:'numeric', month:'long'}); renderHome(); }
+    else if (view==='journal'){ $('#hdrSub').textContent=''; renderJournal(); }
+    else if (view==='tasks')  { $('#hdrSub').textContent=''; renderTasks(); }
+    else if (view==='calendar'){ $('#hdrSub').textContent=''; renderCalendar(); }
+    else if (view==='chat')   { $('#hdrSub').textContent=''; renderChat(); }
+    else if (view==='breathe'){ $('#hdrSub').textContent=''; renderBreathe(); }
+  }
+
+  /* ========================= HOME ========================= */
+  const latestJournal = () => DB.journal[0];
+  const openTasks = () => DB.tasks.filter(t=>!t.done);
+  const upcomingEvents = () => DB.events
+    .filter(e => e.date >= todayKey()).sort((a,b)=>a.date.localeCompare(b.date));
+
+  function homeContext() {
+    const j = latestJournal();
+    return {
+      time: new Date().toLocaleString(undefined,{weekday:'short', hour:'numeric', minute:'2-digit'}),
+      mood: j?.analysis?.mood ?? null,
+      moodLabel: j?.analysis?.moodLabel || '',
+      summary: j?.analysis?.summary || '',
+      tasks: openTasks().slice(0,6).map(t=>t.text + (t.due?` (due ${t.due})`:'')),
+      events: upcomingEvents().slice(0,4).map(e=>`${prettyKey(e.date)}: ${e.title}`)
+    };
+  }
+  const hasData = () => DB.journal.length || DB.tasks.length || DB.events.length;
+
+  function renderHome() {
+    const j = latestJournal();
+    const today = j && j.dateKey===todayKey() ? j : null;
+    const done = DB.tasks.filter(t=>t.done).length, total = DB.tasks.length;
+    const next = upcomingEvents()[0];
+    const moves = DB.move;
+
+    const quick = [
+      { v:'journal', t:'Check in',     d:'How are you?',     ic:'<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>' },
+      { v:'tasks',   t:'Add task',     d:openTasks().length+' open', ic:'<path d="M12 5v14M5 12h14"/>' },
+      { v:'chat',    t:'Talk to Smriti',d:'voice or text',    ic:'<path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10a7 7 0 0 1-14 0"/><path d="M12 17v4"/>' },
+      { v:'calendar',t:'Calendar',     d: next ? prettyKey(next.date) : 'plan ahead', ic:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>' },
+    ];
+
+    $('#view-home').innerHTML = `
+      <div class="fade md:max-w-[920px] md:mx-auto xl:max-w-[1040px]">
+        <div class="text-[24px] font-semibold tighter leading-tight">${greeting()}.</div>
+        <p class="text-[14px] text-muted mt-1">${hasData()? 'Here’s where you are today.' : 'Let’s set up your first check-in.'}</p>
+
+        <!-- NEXT MOVE -->
+        <div class="card p-4 mt-5">
+          <div class="flex items-center justify-between">
+            <div class="text-[11px] font-semibold text-muted uppercase tracking-[0.14em]">Your next move</div>
+            <button id="moveRefresh" class="w-8 h-8 -mr-1 grid place-items-center rounded-lg text-faint pressable" aria-label="Refresh suggestion">
+              <svg id="moveRefreshIc" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
+            </button>
+          </div>
+          <div id="moveBody" class="mt-2">
+            ${ moves ? `<div class="text-[17px] font-medium tight leading-snug">${esc(moves.action)}</div>
+                        ${moves.reason?`<div class="text-[13px] text-muted mt-1">${esc(moves.reason)}</div>`:''}`
+                     : hasData() ? `<div class="text-[15px] text-muted">Tap refresh for your first suggestion.</div>`
+                                 : `<div class="text-[15px] text-muted">Write a check-in or add a task, then I’ll suggest what to do next.</div>` }
+          </div>
+        </div>
+
+        <!-- QUICK ACTIONS -->
+        <div class="grid grid-cols-2 gap-2.5 mt-3 lg:grid-cols-4">
+          ${quick.map(q=>`
+            <button data-go="${q.v}" class="card pressable p-3.5 text-left">
+              <div class="w-9 h-9 rounded-xl bg-hair grid place-items-center mb-2.5">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#18181B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${q.ic}</svg>
+              </div>
+              <div class="text-[14.5px] font-semibold tight leading-none">${q.t}</div>
+              <div class="text-[12px] text-muted mt-1 leading-none">${esc(q.d)}</div>
+            </button>`).join('')}
+        </div>
+
+        <!-- TODAY -->
+        <div class="grid grid-cols-3 gap-2.5 mt-3">
+          <div class="card p-3.5">
+            <div class="text-[11px] text-muted font-medium">Mood</div>
+            <div class="text-[22px] font-semibold num tighter mt-1" style="color:${moodColor(today?.analysis?.mood)}">${today?.analysis?.mood ?? '—'}</div>
+            <div class="text-[11px] text-faint leading-none">${today?.analysis?.moodLabel || 'no check-in'}</div>
+          </div>
+          <div class="card p-3.5">
+            <div class="text-[11px] text-muted font-medium">Tasks</div>
+            <div class="text-[22px] font-semibold num tighter mt-1">${done}<span class="text-faint text-[15px]">/${total}</span></div>
+            <div class="text-[11px] text-faint leading-none">done today</div>
+          </div>
+          <div class="card p-3.5">
+            <div class="text-[11px] text-muted font-medium">Next</div>
+            <div class="text-[14px] font-semibold tight mt-1.5 leading-tight truncate">${next? esc(next.title) : '—'}</div>
+            <div class="text-[11px] text-faint leading-none mt-0.5">${next? prettyKey(next.date) : 'nothing scheduled'}</div>
+          </div>
+        </div>
+
+        ${ DB.journal.length>=2 ? `
+        <div class="card p-4 mt-3">
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-[12px] font-medium text-muted">Mood trend</div>
+            <div class="text-[11px] text-faint">last ${Math.min(7,DB.journal.length)}</div>
+          </div>
+          ${sparkline(DB.journal.slice(0,7).reverse().map(e=>e.analysis?.mood||5))}
+        </div>` : '' }
+      </div>`;
+
+    $('#moveRefresh')?.addEventListener('click', refreshMove);
+    $$('#view-home [data-go]').forEach(b => b.addEventListener('click', ()=>{
+      const v=b.dataset.go; show(v);
+      if (v==='tasks') setTimeout(()=>$('#taskInput')?.focus(), 50);
+      if (v==='journal') setTimeout(()=>$('#journalText')?.focus(), 50);
+    }));
+
+    // auto-fetch the first suggestion when we have data but none cached yet
+    if (hasData() && !DB.move) refreshMove();
+  }
+
+  function sparkline(vals) {
+    const W=320,H=54,p=6, n=vals.length, dx=n>1?(W-2*p)/(n-1):0;
+    const y=(m)=>H-p-((Math.max(1,Math.min(10,m))-1)/9)*(H-2*p);
+    const pts=vals.map((m,i)=>[p+i*dx,y(m)]);
+    const line=pts.map(c=>c.join(',')).join(' ');
+    const dots=pts.map((c,i)=>`<circle cx="${c[0]}" cy="${c[1]}" r="3" fill="${moodColor(vals[i])}"/>`).join('');
+    return `<svg viewBox="0 0 ${W} ${H}" class="w-full" preserveAspectRatio="none">
+      <polyline points="${line}" fill="none" stroke="#18181B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>${dots}</svg>`;
+  }
+
+  async function refreshMove() {
+    const ic=$('#moveRefreshIc'); ic && (ic.parentElement.style.opacity='.5', ic.style.animation='spin .8s linear infinite');
+    try {
+      const { action, reason } = await api('/api/next-action', { context: homeContext() });
+      DB.move = { action, reason }; persist('move'); if (current==='home') renderHome();
+    } catch (e) {
+      const mb=$('#moveBody'); if (mb) mb.innerHTML = `<div class="text-[14px] text-low">Couldn’t reach the coach: ${esc(e.message)}</div>`;
+    } finally { ic && (ic.parentElement.style.opacity='', ic.style.animation=''); }
+  }
+
+  /* ========================= JOURNAL ========================= */
+  function renderJournal() {
+    $('#jrnDate').textContent = new Date().toLocaleDateString(undefined,{weekday:'long', day:'numeric', month:'long'});
+    const list = $('#journalList');
+    if (!DB.journal.length) { list.innerHTML = emptyState('No check-ins yet','Your reflections will appear here.'); return; }
+    list.innerHTML = DB.journal.map(e=>{
+      const a=e.analysis||{};
+      return `<button class="card pressable w-full text-left p-3.5 flex gap-3" data-jid="${e.id}">
+        <div class="shrink-0 w-9 h-9 rounded-xl grid place-items-center num font-semibold text-[15px]" style="background:#F4F4F5;color:${moodColor(+a.mood)}" aria-label="Mood ${num(a.mood)} out of 10">${num(a.mood)}</div>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center justify-between">
+            <div class="text-[13.5px] font-medium tight">${esc(prettyKey(e.dateKey))}</div>
+            <div class="text-[12px] text-faint">${esc(a.moodLabel||'')}</div>
+          </div>
+          <div class="text-[13px] text-muted mt-0.5 line-clamp-2">${esc(a.summary || e.text)}</div>
+        </div></button>`;
+    }).join('');
+    $$('#journalList [data-jid]').forEach(b=>b.addEventListener('click',()=>{
+      const e=DB.journal.find(x=>x.id===b.dataset.jid); if(e) showInsight(e.analysis, e.text);
+    }));
+  }
+
+  async function saveJournal() {
+    const text = $('#journalText').value.trim();
+    if (!text) { $('#journalText').focus(); return; }
+    setBtn('#journalSave','#jrnSpin','#jrnSaveLabel', true, 'Reflecting…');
+    try {
+      const { analysis } = await api('/api/analyze', { transcript: 'Student: '+text });
+      const entry = { id:uid(), ts:Date.now(), dateKey:todayKey(), text, analysis };
+      DB.journal.unshift(entry); persist('journal');
+      DB.move=null; persist('move');               // mood changed → next move is stale
+      $('#journalText').value='';
+      showInsight(analysis, text);
+      renderJournal();
+    } catch (e) {
+      $('#journalInsight').innerHTML = `<div class="card p-4 text-[14px] text-low">Couldn’t analyse that: ${esc(e.message)}</div>`;
+    } finally { setBtn('#journalSave','#jrnSpin','#jrnSaveLabel', false, 'Save & reflect'); }
+  }
+
+  function showInsight(a, text) {
+    if (!a) { $('#journalInsight').innerHTML=''; return; }
+    const trig = Array.isArray(a.stressTriggers)?a.stressTriggers:[];
+    const m = num(a.mood);
+    const risk = (a.riskLevel==='crisis'||a.riskLevel==='elevated');
+    const tech = (risk || (Number.isFinite(+a.mood) && +a.mood<=4)) ? '478' : 'box';   // adaptive: pick the exercise by state
+    $('#journalInsight').innerHTML = `
+      <div class="card p-4 fade">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl grid place-items-center num font-semibold text-[22px] tighter" style="background:#F4F4F5;color:${moodColor(+a.mood)}" aria-label="Mood ${m} out of 10">${m}</div>
+          <div>
+            <div class="text-[15px] font-semibold tight">${esc(a.moodLabel||'Noted')}</div>
+            <div class="text-[12px] text-muted">mood / 10</div>
+          </div>
+        </div>
+        <p class="text-[14px] leading-relaxed mt-3">${esc(a.summary||'')}</p>
+        ${ trig.length ? `<div class="flex flex-wrap gap-1.5 mt-3">${trig.map(t=>`<span class="text-[12px] px-2.5 py-1 rounded-full bg-hair text-ink2" title="${esc(t.evidence||'')}">${esc(t.trigger)}</span>`).join('')}</div>`:'' }
+        ${ a.copingStrategy ? `<div class="mt-3 pt-3 border-t border-hair">
+            <div class="text-[11px] font-semibold text-muted uppercase tracking-[0.14em] mb-1">Try this now</div>
+            <div class="text-[14px]">${esc(a.copingStrategy)}</div>
+            <button data-breathe="${tech}" class="mt-2.5 bg-ink text-white rounded-full px-3.5 py-1.5 text-[13px] font-medium pressable">Start a 60-second breath →</button>
+          </div>`:'' }
+        ${ risk ? `<div role="alert" class="mt-3 text-[13px] rounded-xl bg-[#FEF2F2] text-[#991B1B] px-3 py-2.5">You’re carrying a lot, and you don’t have to do it alone. <a class="underline font-medium" href="tel:14416">Tele-MANAS 14416</a> is free, confidential, 24×7. <button data-breathe="478" class="underline font-medium">Breathe with me for a minute.</button></div>`:'' }
+      </div>`;
+    $$('#journalInsight [data-breathe]').forEach(b=>b.addEventListener('click',()=>openBreathe(b.dataset.breathe)));
+  }
+
+  /* ========================= TASKS ========================= */
+  function renderTasks() {
+    const open = DB.tasks.filter(t=>!t.done), done = DB.tasks.filter(t=>t.done);
+    const row = (t)=>`<div class="card p-3 flex items-center gap-3" data-tid="${t.id}">
+        <button class="check shrink-0 w-6 h-6 rounded-full border-2 grid place-items-center ${t.done?'bg-ink border-ink text-white':'border-line2 text-transparent'}" role="checkbox" aria-checked="${t.done}" aria-label="Mark '${esc(t.text)}' ${t.done?'not done':'done'}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </button>
+        <div class="flex-1 min-w-0">
+          <div class="text-[15px] ${t.done?'line-through text-faint':''} tight truncate">${esc(t.text)}</div>
+          ${t.due?`<div class="text-[12px] ${dueClass(t)} mt-0.5">${esc(dueLabel(t.due))}</div>`:''}
+        </div>
+        <button class="del shrink-0 w-7 h-7 grid place-items-center text-faint pressable" aria-label="Delete">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>`;
+    $('#taskOpen').innerHTML = open.length ? open.map(row).join('') : emptyState('No open tasks','Add what you need to do today.');
+    $('#taskDoneWrap').classList.toggle('hidden', !done.length);
+    $('#taskDone').innerHTML = done.map(row).join('');
+    $$('#view-tasks [data-tid]').forEach(el=>{
+      const t=DB.tasks.find(x=>x.id===el.dataset.tid);
+      $('.check',el).addEventListener('click',()=>{ t.done=!t.done; persist('tasks'); DB.move=null; persist('move'); renderTasks(); });
+      $('.del',el).addEventListener('click',()=>{ DB.tasks=DB.tasks.filter(x=>x.id!==t.id); persist('tasks'); renderTasks(); });
+    });
+  }
+  const dueLabel = (d)=>{ const t=todayKey(); return d<t?`Overdue · ${prettyKey(d)}`: d===t?'Due today': `Due ${prettyKey(d)}`; };
+  const dueClass = (t)=> t.due<todayKey()?'text-low': t.due===todayKey()?'text-mid':'text-muted';
+  function addTask() {
+    const text=$('#taskInput').value.trim(); if(!text) return;
+    const due=$('#taskDue').value || '';
+    DB.tasks.push({ id:uid(), text, done:false, due }); persist('tasks');
+    DB.move=null; persist('move');
+    $('#taskInput').value=''; $('#taskDue').value=''; renderTasks(); $('#taskInput').focus();
+  }
+
+  /* ========================= CALENDAR ========================= */
+  let calMonth = (()=>{ const d=new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
+  let calSel = todayKey();
+  function renderCalendar() {
+    const y=calMonth.getFullYear(), m=calMonth.getMonth();
+    $('#calLabel').textContent = `${MON[m]} ${y}`;
+    const first=new Date(y,m,1), startDow=(first.getDay()+6)%7; // Mon=0
+    const days=new Date(y,m+1,0).getDate();
+    const marks={};   // day -> { mood?, other? } : mood-coloured dot for check-ins, neutral for events/tasks
+    DB.journal.forEach(e=>{ (marks[e.dateKey]=marks[e.dateKey]||{}).mood = (e.analysis && e.analysis.mood); });
+    DB.events.forEach(e=>{ (marks[e.date]=marks[e.date]||{}).other = true; });
+    DB.tasks.forEach(t=>{ if(t.due&&!t.done) (marks[t.due]=marks[t.due]||{}).other = true; });
+    let cells='';
+    for(let i=0;i<startDow;i++) cells+=`<div></div>`;
+    for(let d=1;d<=days;d++){
+      const k=`${y}-${pad(m+1)}-${pad(d)}`;
+      const isToday=k===todayKey(), sel=k===calSel, mk=marks[k];
+      const dot = mk
+        ? `<span class="w-1.5 h-1.5 rounded-full" style="background:${sel?'#fff':(mk.mood!=null?moodColor(mk.mood):'#18181B')}"></span>`
+        : `<span class="w-1.5 h-1.5"></span>`;
+      cells+=`<button data-day="${k}" class="aspect-square rounded-xl pressable flex flex-col items-center justify-center gap-1 ${sel?'bg-ink text-white':isToday?'bg-hair':''}">
+        <span class="text-[13.5px] num ${sel?'text-white':isToday?'font-semibold':'text-ink2'}">${d}</span>
+        ${dot}
+      </button>`;
+    }
+    $('#calGrid').innerHTML=cells;
+    $$('#calGrid [data-day]').forEach(b=>b.addEventListener('click',()=>{ calSel=b.dataset.day; renderCalendar(); }));
+    renderDayPanel();
+  }
+  function renderDayPanel() {
+    const jr =DB.journal.find(e=>e.dateKey===calSel);
+    const evs=DB.events.filter(e=>e.date===calSel);
+    const tks=DB.tasks.filter(t=>t.due===calSel);
+    const nothing = !jr && !evs.length && !tks.length;
+    $('#calDay').innerHTML = `
+      <div class="flex items-center justify-between">
+        <div class="text-[14px] font-semibold tight">${esc(prettyKey(calSel))}</div>
+      </div>
+      ${ jr ? `<button id="calJrnl" class="card pressable w-full text-left p-3.5 flex gap-3 mt-3">
+          <div class="shrink-0 w-9 h-9 rounded-xl grid place-items-center num font-semibold text-[15px]" style="background:#F4F4F5;color:${moodColor(jr.analysis&&jr.analysis.mood)}">${(jr.analysis&&jr.analysis.mood)??'—'}</div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-between">
+              <div class="text-[13px] font-medium tight">Check-in · ${esc((jr.analysis&&jr.analysis.moodLabel)||'')}</div>
+              <div class="text-[12px] text-faint">view →</div>
+            </div>
+            <div class="text-[13px] text-muted mt-0.5 line-clamp-2">${esc((jr.analysis&&jr.analysis.summary)||jr.text)}</div>
+          </div></button>` : '' }
+      <div class="field flex items-center gap-2 mt-3 px-3 py-2.5">
+        <input id="evtInput" class="flex-1 bg-transparent outline-none text-[14px] placeholder:text-faint" placeholder="Add an exam, test or study block…" />
+        <button id="evtAdd" class="text-[13px] font-medium text-ink pressable">Add</button>
+      </div>
+      <div class="mt-3 space-y-2">
+        ${ nothing ? `<div class="text-[13px] text-faint py-1">No check-in or events on this day yet.</div>` : '' }
+        ${ evs.map(e=>`<div class="card p-3 flex items-center gap-3" data-eid="${e.id}">
+            <span class="w-2 h-2 rounded-full bg-ink shrink-0"></span>
+            <div class="flex-1 text-[14px] tight">${esc(e.title)}</div>
+            <button class="evdel w-7 h-7 grid place-items-center text-faint pressable" aria-label="Delete">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+          </div>`).join('') }
+        ${ tks.map(t=>`<div class="card p-3 flex items-center gap-3">
+            <span class="w-2 h-2 rounded-full shrink-0 ${t.done?'bg-good':'bg-mid'}"></span>
+            <div class="flex-1 text-[14px] tight ${t.done?'line-through text-faint':''}">${esc(t.text)}</div>
+            <span class="text-[11px] text-faint">task</span>
+          </div>`).join('') }
+      </div>`;
+    const addEvt=()=>{ const v=$('#evtInput').value.trim(); if(!v) return; DB.events.push({id:uid(),date:calSel,title:v}); persist('events'); renderCalendar(); };
+    $('#evtAdd').addEventListener('click', addEvt);
+    $('#evtInput').addEventListener('keydown', e=>{ if(e.key==='Enter') addEvt(); });
+    $('#calJrnl')?.addEventListener('click', ()=>{ show('journal'); showInsight(jr.analysis, jr.text); $('#journalInsight')?.scrollIntoView({behavior:'smooth',block:'nearest'}); });
+    $$('#calDay [data-eid]').forEach(el=>$('.evdel',el).addEventListener('click',()=>{
+      DB.events=DB.events.filter(x=>x.id!==el.dataset.eid); persist('events'); renderCalendar();
+    }));
+  }
+
+  /* ========================= COMPANION (voice + text) ========================= */
+  const GREETING = "Hey, I'm Smriti. How are you feeling right now?";
+  function renderChat() {
+    const t=$('#thread');
+    t.innerHTML = bubble('assistant', GREETING) + DB.chat.map(m=>bubble(m.role,m.text)).join('');
+    t.scrollTop=t.scrollHeight;
+  }
+  function bubble(role, text){
+    const me=role==='user';
+    return `<div class="flex ${me?'justify-end':'justify-start'} fade">
+      <div class="max-w-[82%] px-3.5 py-2.5 text-[14.5px] leading-snug ${me?'bg-ink text-white rounded-2xl rounded-br-md':'bg-hair text-ink rounded-2xl rounded-bl-md'}">${esc(text)}</div></div>`;
+  }
+  function pushChat(role,text){ DB.chat.push({role,text}); persist('chat'); }
+  function appendBubble(role,text){ const t=$('#thread'); t.insertAdjacentHTML('beforeend', bubble(role,text)); t.scrollTop=t.scrollHeight; }
+
+  async function sendChat() {
+    const v=$('#chatInput').value.trim(); if(!v) return;
+    $('#chatInput').value='';
+    pushChat('user',v); appendBubble('user',v);
+    const t=$('#thread');
+    t.insertAdjacentHTML('beforeend', `<div id="typing" class="flex justify-start"><div class="bg-hair rounded-2xl rounded-bl-md px-4 py-3 typing flex gap-1"><span></span><span></span><span></span></div></div>`);
+    t.scrollTop=t.scrollHeight;
+    try {
+      const ctx = homeContext();
+      ctx.triggers = (latestJournal()?.analysis?.stressTriggers || []).map(t=>t.trigger);
+      const { reply } = await api('/api/chat', { messages: DB.chat.slice(-12), context: ctx });
+      $('#typing')?.remove();
+      pushChat('assistant',reply); appendBubble('assistant',reply);
+    } catch(e){ $('#typing')?.remove(); appendBubble('assistant','(couldn’t reply: '+e.message+')'); }
+  }
+
+  /* ---------- voice via AssemblyAI Voice Agent API ----------
+     The server mints a short-lived token (/api/voice-token); the browser opens ONE
+     WebSocket to AssemblyAI which does STT + LLM + TTS + turn-taking + barge-in.
+     The API key never reaches the browser. Audio both ways: PCM16 mono @24kHz, base64. */
+  const SYSTEM_PROMPT = `You are Smriti, a warm, calm voice companion for a student in India preparing for a high-stakes exam (NEET, JEE, CUET, CAT, GATE or UPSC). You speak out loud, so keep every reply SHORT — 1 to 3 sentences, natural and human. Gently ask how their day or prep went, listen, reflect back, and ask one caring follow-up at a time. Notice the feeling underneath the facts. When they sound stressed offer one tiny concrete thing (a slow breath, a reframe). Validate first; never use toxic positivity. You are not a doctor; if they mention self-harm or hopelessness, calmly encourage Tele-MANAS 14416 and a trusted person.`;
+  const VOICE_GREETING = "Hey, I'm Smriti. I'm really glad you took a minute for yourself. How's your day been?";
+
+  // AudioWorklet: batches mic samples (~100ms) and ships them to the main thread.
+  const WORKLET_SRC = `class Cap extends AudioWorkletProcessor{
+    constructor(){ super(); this._b=[]; this._n=0; }
+    process(inputs){ const ch=inputs[0] && inputs[0][0];
+      if(ch){ this._b.push(new Float32Array(ch)); this._n+=ch.length;
+        if(this._n>=2400){ const out=new Float32Array(this._n); let o=0;
+          for(const x of this._b){ out.set(x,o); o+=x.length; }
+          this.port.postMessage(out,[out.buffer]); this._b=[]; this._n=0; } }
+      return true; } }
+  registerProcessor('cap', Cap);`;
+
+  let ws=null, ac=null, micStream=null, capNode=null, ready=false, inCall=false, voiceReady=false, voiceStartLen=0;
+  let playhead=0; const liveSources=new Set();
+
+  function f32ToB64(f32){
+    const i16=new Int16Array(f32.length);
+    for(let i=0;i<f32.length;i++){ let s=Math.max(-1,Math.min(1,f32[i])); i16[i]= s<0? s*0x8000 : s*0x7FFF; }
+    const bytes=new Uint8Array(i16.buffer); let bin=''; const C=0x8000;
+    for(let i=0;i<bytes.length;i+=C) bin+=String.fromCharCode.apply(null, bytes.subarray(i,i+C));
+    return btoa(bin);
+  }
+  function b64ToF32(b64){
+    const bin=atob(b64), bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    const i16=new Int16Array(bytes.buffer), f32=new Float32Array(i16.length);
+    for(let i=0;i<i16.length;i++) f32[i]=i16[i]/32768;
+    return f32;
+  }
+  function playPCM(f32){
+    if(!ac) return;
+    const buf=ac.createBuffer(1,f32.length,24000); buf.getChannelData(0).set(f32);
+    const src=ac.createBufferSource(); src.buffer=buf; src.connect(ac.destination);
+    const t=Math.max(ac.currentTime,playhead); src.start(t); playhead=t+buf.duration;
+    liveSources.add(src); src.onended=()=>liveSources.delete(src);
+  }
+  function flushAudio(){ for(const s of liveSources){ try{s.stop();}catch{} } liveSources.clear(); playhead=0; }
+
+  function micState(s){
+    const b=$('#micBtn'), on = s==='live'||s==='speaking';
+    b.classList.toggle('mic-live', on);
+    b.classList.toggle('bg-low', on); b.classList.toggle('bg-ink', !on);
+    $('#micIcon').innerHTML = on
+      ? '<rect x="6" y="6" width="12" height="12" rx="2"/>'   // stop
+      : '<path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10a7 7 0 0 1-14 0"/><path d="M12 17v4"/>';
+  }
+
+  function onVoiceMsg(m){
+    switch(m.type){
+      case 'session.ready':        ready=true; inCall=true; micState('live'); $('#micStatus').textContent='Listening… talk to me'; break;
+      case 'input.speech.started': flushAudio(); micState('live'); break;               // user barge-in
+      case 'reply.audio':          if(m.data){ playPCM(b64ToF32(m.data)); micState('speaking'); } break;
+      case 'reply.done':           if(m.status==='interrupted') flushAudio(); micState('live'); break;
+      case 'transcript.user':      if(m.text){ pushChat('user',m.text); appendBubble('user',m.text); } break;
+      case 'transcript.agent':     if(m.text){ pushChat('assistant',m.text); appendBubble('assistant',m.text); } break;
+      case 'error': case 'session.error': console.error('voice error', m); $('#micStatus').textContent='Voice error: '+(m.message||m.error||'see console'); break;
+    }
+  }
+
+  async function startVoice(){
+    $('#micStatus').textContent='Connecting…';
+    voiceStartLen = DB.chat.length;   // remember where this call's transcript begins
+    let token;
+    try { const r=await fetch('/api/voice-token'); const d=await r.json(); if(!r.ok) throw new Error(d.error||('HTTP '+r.status)); token=d.token; }
+    catch(e){ $('#micStatus').textContent='Could not get voice token: '+e.message; return; }
+    try {
+      ac = new (window.AudioContext||window.webkitAudioContext)({ sampleRate:24000 });
+      await ac.resume();
+      micStream = await navigator.mediaDevices.getUserMedia({ audio:{ channelCount:1, echoCancellation:true, noiseSuppression:true, autoGainControl:true } });
+      await ac.audioWorklet.addModule(URL.createObjectURL(new Blob([WORKLET_SRC],{type:'application/javascript'})));
+
+      ws = new WebSocket(`wss://agents.assemblyai.com/v1/ws?token=${encodeURIComponent(token)}`);
+      ws.onopen = () => ws.send(JSON.stringify({ type:'session.update', session:{ system_prompt:SYSTEM_PROMPT, greeting:VOICE_GREETING, output:{ voice:'ivy' } } }));
+      ws.onmessage = (e)=>{ try{ onVoiceMsg(JSON.parse(e.data)); }catch{} };
+      ws.onerror = (e)=>{ console.error(e); $('#micStatus').textContent='Voice connection error — see console.'; };
+      ws.onclose = ()=>{ if(inCall) stopVoice(); };
+
+      capNode = new AudioWorkletNode(ac,'cap');
+      capNode.port.onmessage = (ev)=>{ if(ready && ws && ws.readyState===1) ws.send(JSON.stringify({ type:'input.audio', audio:f32ToB64(ev.data) })); };
+      const src = ac.createMediaStreamSource(micStream);
+      const sink = ac.createGain(); sink.gain.value = 0;            // keep the graph running without echoing the mic
+      src.connect(capNode); capNode.connect(sink); sink.connect(ac.destination);
+      inCall = true; micState('live');
+    } catch(e){ console.error(e); $('#micStatus').textContent='Could not start voice: '+(e?.message||e); stopVoice(); }
+  }
+  function stopVoice(){
+    const produced = inCall && DB.chat.length > voiceStartLen;   // did this call actually say anything?
+    ready=false; inCall=false;
+    try{ ws&&ws.close(); }catch{} ws=null;
+    try{ micStream&&micStream.getTracks().forEach(t=>t.stop()); }catch{} micStream=null;
+    try{ capNode&&capNode.disconnect(); }catch{} capNode=null;
+    flushAudio();
+    try{ ac&&ac.close(); }catch{} ac=null;
+    micState('idle');
+    $('#micStatus').textContent = voiceReady ? 'Tap the mic and just talk — or type below' : 'Add an AssemblyAI key to .env to enable voice — typing still works.';
+    if(produced){ const since=voiceStartLen; voiceStartLen=DB.chat.length; wrapUpSession(DB.chat.slice(since)); }  // auto-fill the day
+  }
+  function toggleVoice(){
+    if(!voiceReady){ $('#micStatus').textContent='Add an AssemblyAI key to .env to enable voice — typing still works.'; return; }
+    if(inCall) stopVoice(); else startVoice();
+  }
+
+  /* ========================= helpers ========================= */
+  function emptyState(title, sub){
+    return `<div class="text-center py-10">
+      <div class="text-[15px] font-medium tight">${esc(title)}</div>
+      <div class="text-[13px] text-muted mt-1">${esc(sub)}</div></div>`;
+  }
+  function setBtn(btn, spin, label, on, text){
+    $(btn).disabled=on; $(spin).classList.toggle('hidden',!on);
+    $(label).textContent = on ? text : text;
+  }
+  function toast(msg, sticky){
+    let t=$('#toast');
+    if(!t){ t=document.createElement('div'); t.id='toast';
+      t.setAttribute('role','status'); t.setAttribute('aria-live','polite');
+      t.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:96px;z-index:60;transition:opacity .25s;opacity:0';
+      t.className='bg-ink text-white text-[13px] px-4 py-2.5 rounded-full shadow-xl max-w-[88%] text-center';
+      document.body.appendChild(t); }
+    t.textContent=msg; t.style.opacity='1';
+    clearTimeout(t._t); if(!sticky) t._t=setTimeout(()=>{ t.style.opacity='0'; }, 2800);
+  }
+
+  /* ---------- the agentic bit: a conversation becomes today's journal + tasks ---------- */
+  async function wrapUpSession(msgs){
+    const conv=(msgs||[]).filter(m=>m&&m.text);
+    const text=conv.map(m=>`${m.role==='user'?'Student':'Smriti'}: ${m.text}`).join('\n');
+    if(!text.trim()){ toast('Have a quick chat first, then I’ll save it.'); return; }
+    toast('Saving today’s check-in…', true);
+    try{
+      const { journal, tasks } = await api('/api/session-summary', { transcript:text, today:todayKey() });
+      const tk=todayKey();
+      const idx=DB.journal.findIndex(e=>e.dateKey===tk);
+      const entry={ id: idx>=0?DB.journal[idx].id:uid(), ts:Date.now(), dateKey:tk, text, analysis:journal };
+      if(idx>=0) DB.journal[idx]=entry; else DB.journal.unshift(entry);
+      persist('journal');
+      let added=0; const seen=new Set(DB.tasks.map(t=>(t.text||'').toLowerCase().trim()));
+      (tasks||[]).forEach(t=>{ const k=(t.text||'').toLowerCase().trim(); if(k&&!seen.has(k)){ DB.tasks.push({id:uid(),text:t.text,done:false,due:t.due||''}); seen.add(k); added++; } });
+      persist('tasks'); DB.move=null; persist('move');
+      toast(`✓ Check-in saved · ${added} task${added===1?'':'s'} added`);
+      if(current==='journal') renderJournal();
+      if(current==='tasks') renderTasks();
+      if(current==='home') renderHome();
+    }catch(e){ toast('Couldn’t save: '+(e.message||e)); }
+  }
+
+  /* ========================= BREATHE (adaptive mindfulness exercise) =========================
+     A real, interactive guided-breathing view. The technique adapts to the student's state:
+     the journal insight & crisis banner deep-link here (openBreathe) and auto-start the
+     exercise best suited to their mood/risk (4-7-8 when low/elevated, box otherwise). */
+  const BREATHE = {
+    box:  { name:'Box',   sub:'Steady a racing mind · 4-4-4-4',     steps:[['Breathe in',4],['Hold',4],['Breathe out',4],['Hold',4]] },
+    '478':{ name:'4-7-8', sub:'Ease panic, drift to sleep · 4-7-8', steps:[['Breathe in',4],['Hold',7],['Breathe out',8]] },
+    calm: { name:'Calm',  sub:'A longer exhale settles you · 4-6',  steps:[['Breathe in',4],['Breathe out',6]] }
+  };
+  let breatheTech='box', breatheTimer=null, breatheCD=null, breatheRunning=false, breatheCycles=0;
+
+  function renderBreathe(){
+    const t = BREATHE[breatheTech];
+    $('#view-breathe').innerHTML = `
+      <div class="md:max-w-[560px] md:mx-auto text-center">
+        <h2 class="text-[22px] font-semibold tighter">Breathe</h2>
+        <p class="text-[13px] text-muted mt-1 max-w-sm mx-auto">A 60-second reset. Follow the circle — breathe in as it grows, out as it shrinks.</p>
+
+        <div class="flex justify-center gap-2 mt-5" role="group" aria-label="Breathing technique">
+          ${Object.entries(BREATHE).map(([k,v])=>`<button data-tech="${k}" aria-pressed="${k===breatheTech}" class="px-3.5 py-1.5 rounded-full text-[13px] font-medium border ${k===breatheTech?'bg-ink text-white border-ink':'border-line text-ink2'} pressable">${v.name}</button>`).join('')}
+        </div>
+        <p class="text-[12px] text-muted mt-2">${esc(t.sub)}</p>
+
+        <div class="relative grid place-items-center my-8" style="height:260px">
+          <div id="breatheCircle" class="rounded-full bg-good/10 border-2 border-good/40" style="width:220px;height:220px;transform:scale(.6);transition:transform .6s ease"></div>
+          <div class="absolute text-center" aria-live="polite">
+            <div id="breathePhase" class="text-[18px] font-semibold tight">Ready when you are</div>
+            <div id="breatheCount" class="text-[28px] font-semibold num text-muted mt-1 leading-none"></div>
+          </div>
+        </div>
+
+        <button id="breatheToggle" class="bg-ink text-white rounded-2xl px-8 py-3.5 font-medium text-[15px] pressable">Start</button>
+        <p class="text-[12px] text-muted mt-5">Feeling overwhelmed? <a class="underline" href="tel:14416">Tele-MANAS 14416</a> is there 24×7.</p>
+      </div>`;
+    $$('#view-breathe [data-tech]').forEach(b=>b.addEventListener('click',()=>{ if(breatheRunning) stopBreathe(); breatheTech=b.dataset.tech; renderBreathe(); }));
+    $('#breatheToggle').addEventListener('click', ()=> breatheRunning ? stopBreathe() : startBreathe());
+  }
+  function startBreathe(){
+    const steps = BREATHE[breatheTech].steps;
+    breatheRunning=true; breatheCycles=0;
+    const circle=$('#breatheCircle'), phase=$('#breathePhase'), count=$('#breatheCount'), btn=$('#breatheToggle');
+    if(btn) btn.textContent='Stop';
+    let i=0;
+    const tick=()=>{
+      const [label,secs]=steps[i%steps.length];
+      if(phase) phase.textContent=label;
+      const scale = /in/i.test(label) ? 1 : /out/i.test(label) ? 0.55 : null;   // hold → keep size
+      if(circle && scale!=null){ circle.style.transition=`transform ${secs}s ease-in-out`; circle.style.transform=`scale(${scale})`; }
+      let left=secs; if(count) count.textContent=left;
+      clearInterval(breatheCD); breatheCD=setInterval(()=>{ left--; if(count) count.textContent = left>0 ? left : ''; }, 1000);
+      i++; if(i%steps.length===0) breatheCycles++;
+      breatheTimer=setTimeout(tick, secs*1000);
+    };
+    tick();
+  }
+  function stopBreathe(){
+    breatheRunning=false; clearTimeout(breatheTimer); clearInterval(breatheCD);
+    const circle=$('#breatheCircle'); if(circle){ circle.style.transition='transform .6s ease'; circle.style.transform='scale(.6)'; }
+    const phase=$('#breathePhase'); if(phase) phase.textContent = breatheCycles>0 ? `Nicely done — ${breatheCycles} breath${breatheCycles>1?'s':''}` : 'Ready when you are';
+    const count=$('#breatheCount'); if(count) count.textContent='';
+    const btn=$('#breatheToggle'); if(btn) btn.textContent='Start';
+  }
+  function openBreathe(tech){ if(tech && BREATHE[tech]) breatheTech=tech; show('breathe'); setTimeout(()=>{ try{ startBreathe(); }catch{} }, 80); }
+
+  /* ========================= init ========================= */
+  $$('.nav-btn').forEach(b=>b.addEventListener('click',()=>show(b.dataset.view)));
+  $('#journalSave').addEventListener('click', saveJournal);
+  $('#taskAdd').addEventListener('click', addTask);
+  $('#taskInput').addEventListener('keydown', e=>{ if(e.key==='Enter') addTask(); });
+  $('#calPrev').addEventListener('click', ()=>{ calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()-1,1); renderCalendar(); });
+  $('#calNext').addEventListener('click', ()=>{ calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()+1,1); renderCalendar(); });
+  $('#chatSend').addEventListener('click', sendChat);
+  $('#chatInput').addEventListener('keydown', e=>{ if(e.key==='Enter') sendChat(); });
+  $('#micBtn').addEventListener('click', toggleVoice);
+  $('#saveSession').addEventListener('click', ()=> wrapUpSession(DB.chat.slice(-40)));
+
+  (async()=>{
+    try { voiceReady = !!(await (await fetch('/api/config')).json()).voiceReady; } catch {}
+    if(!voiceReady) $('#micStatus').textContent = 'Add an AssemblyAI key to .env to enable voice — typing still works.';
+  })();
+  show('home');
+  </script>
+</body>
+</html>

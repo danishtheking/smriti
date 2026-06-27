@@ -1,0 +1,20 @@
+# ── Secrets — never commit ──
+.env
+.env.*
+!.env.example
+config.local.js
+# GCP service-account keys
+*service-account*.json
+*sa-key*.json
+gcp-*.json
+credentials*.json
+
+# ── Dependencies ──
+node_modules/
+
+# ── Tooling / OS ──
+.claude/
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
