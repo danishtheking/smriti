@@ -4,6 +4,9 @@
   "private": true,
   "description": "Smriti — a voice-first AI wellness companion for students in high-stakes exams (NEET/JEE/CUET/CAT/GATE/UPSC). AssemblyAI voice agent + Claude journal analysis that surfaces hidden stress triggers.",
   "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
