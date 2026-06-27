@@ -293,7 +293,7 @@ app.post('/api/session-summary', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5599;
-app.listen(PORT, () => {
+if (!process.env.VERCEL) app.listen(PORT, () => {
   const s = provider.status();
   const billing = s.provider === 'claude'
     ? `Claude API · model ${s.model}`
@@ -305,3 +305,6 @@ app.listen(PORT, () => {
   console.log(`\nSmriti → http://localhost:${PORT}`);
   console.log(`Provider: ${billing}  (chat/next-action → ${FAST_MODEL}, analysis → ${SMART_MODEL})\n`);
 });
+
+// Serverless (Vercel): export the Express app so it can be used as the request handler.
+module.exports = app;
